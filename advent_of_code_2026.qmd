@@ -173,13 +173,65 @@ for (i in 1:nrow(rotations)) {
 #6412 is correct!!!
 ```
 
-## Day 2
+## Day 2 - Gift Shop
 
 ### Part 1
 
-### 
+```{r}
+id_strings <- tibble(ids = read_lines(here("input/day2_part1.txt"))) %>%
+  separate_rows(ids, sep = ",") %>%
+  separate(ids, into = c("range_start", "range_end"))
+
+invalid_id_count <- 0
+invalid_id_sum <- 0
+
+for (i in 1:nrow(id_strings)) {
+#for (i in 2:2) {
+  range <- id_strings$range_start[[i]]:id_strings$range_end[[i]]
+  
+  for (j in 1:length(range)) {
+    id <- range[[j]]
+    #Only have to worry about even string length numbers
+    if (str_length(id) %% 2 == 0) {
+    first_half <- as.numeric(str_sub(id, 1, str_length(id)/2))
+    second_half <- as.numeric(str_sub(id, str_length(id)/2 +1, str_length(id)))
+    if (first_half == second_half) {
+      invalid_id_count <- invalid_id_count + 1
+      invalid_id_sum <- invalid_id_sum + id
+    }
+    }
+  }
+}
+
+```
 
 ### Part 2
+
+```{r}
+
+test_for_repeats <- function(string) {
+  if(str_detect(string, "^(.*)\\1+$") == TRUE) {
+    return(TRUE)
+  } else {
+    return(FALSE)
+  }
+}
+test_for_repeats <- Vectorize(test_for_repeats)
+
+string_ranges <- list()
+
+for (i in 1:nrow(id_strings)) {
+  range <- id_strings$range_start[[i]]:id_strings$range_end[[i]]
+  string_ranges <- c(string_ranges, list(range))
+}
+
+string_ranges <- unlist(string_ranges)
+
+to_sum <- which(test_for_repeats(string_ranges) == T)
+
+sum(string_ranges[to_sum])
+
+```
 
 ## Day 3
 
