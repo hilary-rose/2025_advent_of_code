@@ -113,7 +113,7 @@ for (i in 1:nrow(rotations)) {
   } 
   
   if (add_subtract == "L") {
-    #-----------------Dial Right on Zero
+    #-----------------Dial Left on Zero
     #if the dial lands exactly on zero, add it to our tally and reset current_value
     if (current_value - change_value == 0) {
            current_value <- 0
