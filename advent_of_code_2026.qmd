@@ -8,7 +8,7 @@ editor: visual
 library(here)
 library(tidyverse)
 library(janitor)
-
+options(scipen = 999)
 
 ```
 
@@ -233,10 +233,56 @@ sum(string_ranges[to_sum])
 
 ```
 
-## Day 3
+## Day 3 - Joltage
 
 ### Part 1
 
-### 
+```{r}
+batteries <- str_split(read_lines(here("input/day3_part1.txt")), "")
+
+joltages <- list()
+
+#find index of highest number that isn't the very last number, then find next highest number after that one
+
+for (i in 1:length(batteries)) {
+  vector <- as.numeric(batteries[[i]])
+  #get max of the vector without the final element
+  max_index <- which(vector == max(vector[-c(length(vector))]))[[1]]
+  max_value <- max(vector[-c(length(vector))])
+  second_max_value <- max(vector[-c(1:max_index)])
+  
+  joltage <- as.numeric(paste0(max_value, second_max_value))
+  joltages <- c(joltages, list(joltage))
+}
+
+sum(unlist(joltages))
+
+```
 
 ### Part 2
+
+```{r}
+
+joltages <- list()
+
+#find index of highest number that isn't the very last number, then find next highest number after that one, and so on, 12 times, making sure there are at least the right number of digits left in the vector
+
+for (i in 1:length(batteries)) {
+  vector <- as.numeric(batteries[[i]])
+  
+  digit_counter <- 11
+  digits <- c()
+  for (j in 1:12) {
+  #get max of the vector without the final n elements
+  max_index <- which(vector == max(vector[1:(length(vector)-digit_counter)]))[[1]]
+  max_value <- max(vector[max_index:(length(vector)-digit_counter)])
+  digits <- c(digits, c(max_value))
+  digit_counter <- digit_counter - 1
+  vector <- vector[(max_index + 1):length(vector)]
+  }
+  digits <- as.numeric(glue::glue_collapse(digits))
+  joltages <- c(joltages, list(digits))
+}
+
+sum(unlist(joltages))
+```
