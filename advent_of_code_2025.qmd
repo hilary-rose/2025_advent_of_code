@@ -386,7 +386,8 @@ rock_n_roll <- function(matrix) {
       }
       if (i == (ncol(matrix) - 1) & j == (nrow(matrix) - 1)) {
         if (current_rolls_counter == 0) {
-          return("Finished!")
+          done <- "Finished!"
+          return(done)
         } else {
         matrix[indices_to_replace] <- "."
         rock_n_roll(matrix)
