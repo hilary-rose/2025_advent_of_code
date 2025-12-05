@@ -35,8 +35,8 @@ for (i in 1:nrow(rotations)) {
   if (i == 1) {
     current_value <- starting_value
   }
-  add_subtract <- rotations$direction[[[[i]]]]
-  change_value <- rotations$number[[[[i]]]]
+  add_subtract <- rotations$direction[[i]]
+  change_value <- rotations$number[[i]]
   
   if (change_value > 99) {
     change_value <- change_value %% 100 #there are 100 values available, 0-99
@@ -82,8 +82,8 @@ for (i in 1:nrow(rotations)) {
   if (i == 1) {
     current_value <- dial[[starting_index]]
   }
-  add_subtract <- rotations$direction[[[[i]]]]
-  change_value <- rotations$number[[[[i]]]]
+  add_subtract <- rotations$direction[[i]]
+  change_value <- rotations$number[[i]]
   times_past_zero <- 0
   
   if (add_subtract == "R") {
@@ -153,8 +153,8 @@ zero_positions <- which(unlimited_dial == 0)
 number_zeroes <- 0
 
 for (i in 1:nrow(rotations)) {
-  add_subtract <- rotations$direction[[[[i]]]]
-  change_value <- rotations$number[[[[i]]]]
+  add_subtract <- rotations$direction[[i]]
+  change_value <- rotations$number[[i]]
   if (i == 1) {
     current_value <- starting_position
   }
@@ -187,10 +187,10 @@ invalid_id_sum <- 0
 
 for (i in 1:nrow(id_strings)) {
 #for (i in 2:2) {
-  range <- id_strings$range_start[[[[i]]]]:id_strings$range_end[[[[i]]]]
+  range <- id_strings$range_start[[i]]:id_strings$range_end[[i]]
   
   for (j in 1:length(range)) {
-    id <- range[[[[j]]]]
+    id <- range[[j]]
     #Only have to worry about even string length numbers
     if (str_length(id) %% 2 == 0) {
     first_half <- as.numeric(str_sub(id, 1, str_length(id)/2))
@@ -221,7 +221,7 @@ test_for_repeats <- Vectorize(test_for_repeats)
 string_ranges <- list()
 
 for (i in 1:nrow(id_strings)) {
-  range <- id_strings$range_start[[[[i]]]]:id_strings$range_end[[[[i]]]]
+  range <- id_strings$range_start[[i]]:id_strings$range_end[[i]]
   string_ranges <- c(string_ranges, list(range))
 }
 
@@ -229,7 +229,7 @@ string_ranges <- unlist(string_ranges)
 
 to_sum <- which(test_for_repeats(string_ranges) == T)
 
-sum(string_ranges[[to_sum]])
+sum(string_ranges[to_sum])
 
 ```
 
@@ -245,11 +245,11 @@ joltages <- list()
 #find index of highest number that isn't the very last number, then find next highest number after that one
 
 for (i in 1:length(batteries)) {
-  vector <- as.numeric(batteries[[[[i]]]])
+  vector <- as.numeric(batteries[[i]])
   #get max of the vector without the final element
-  max_index <- which(vector == max(vector[[-c(length(vector))]]))[[[[1]]]]
-  max_value <- max(vector[[-c(length(vector))]])
-  second_max_value <- max(vector[[-c(1:max_index)]])
+  max_index <- which(vector == max(vector[-c(length(vector))]))[[1]]
+  max_value <- max(vector[-c(length(vector))])
+  second_max_value <- max(vector[-c(1:max_index)])
   
   joltage <- as.numeric(paste0(max_value, second_max_value))
   joltages <- c(joltages, list(joltage))
@@ -268,17 +268,17 @@ joltages <- list()
 #find index of highest number that isn't the very last number, then find next highest number after that one, and so on, 12 times, making sure there are at least the right number of digits left in the vector
 
 for (i in 1:length(batteries)) {
-  vector <- as.numeric(batteries[[[[i]]]])
+  vector <- as.numeric(batteries[[i]])
   
   digit_counter <- 11
   digits <- c()
   for (j in 1:12) {
   #get max of the vector without the final n elements
-  max_index <- which(vector == max(vector[[1:(length(vector)-digit_counter)]]))[[[[1]]]]
-  max_value <- max(vector[[max_index:(length(vector)-digit_counter)]])
+  max_index <- which(vector == max(vector[1:(length(vector)-digit_counter)]))[[1]]
+  max_value <- max(vector[max_index:(length(vector)-digit_counter)])
   digits <- c(digits, c(max_value))
   digit_counter <- digit_counter - 1
-  vector <- vector[[(max_index + 1):length(vector)]]
+  vector <- vector[(max_index + 1):length(vector)]
   }
   digits <- as.numeric(glue::glue_collapse(digits))
   joltages <- c(joltages, list(digits))
@@ -401,4 +401,96 @@ accessible_rolls <- 0
 rock_n_roll(rolls2)
 accessible_rolls
 
+```
+
+## Day 5 - Cafeteria
+
+### Part 1
+
+```{r}
+
+fresh_or_spoiled <- read_tsv(here("input/day5.txt"), 
+                             col_names = "data") 
+ranges <- fresh_or_spoiled %>%
+  filter(str_detect(data, "-")) %>%
+  separate(data, into = c("range_start", "range_end")) %>%
+  mutate(across(everything(), as.numeric))
+
+#hmm.... there are 169 rows, and all the numbers in the ranges and ids are divisible by 13 and 169, and even 371293 to make them smaller whole numbers. 
+
+ids <- fresh_or_spoiled %>%
+  filter(!str_detect(data, "-")) %>%
+  mutate(data = as.numeric(data)) %>%
+  pull(data)
+
+how_many_in_range <- function(ids, ranges) {
+  num_in_range <- 0
+  for (i in 1:length(ids)) {
+    curr_id <- ids[[i]] 
+    in_a_range <- 0 
+    for (j in 1:nrow(ranges)) {
+      if (curr_id >= ranges$range_start[j] & curr_id <= ranges$range_end[j]) {
+        in_a_range <- in_a_range + 1
+        break
+      }
+    }
+    if (in_a_range > 0) {
+      num_in_range <- num_in_range + 1
+    }
+  }
+  return(num_in_range)
+}
+
+how_many_in_range(ids, ranges)
+
+#1943 is too high
+#950 is too high
+#623 is correct!
+```
+
+### Part 2
+
+```{r}
+ranges <- ranges %>%
+  arrange(range_start, range_end) %>% 
+  mutate(n_in_range = 0,
+         overlap_id = NA_character_)
+
+add_overlap_ids <- function(data) {
+  id_tally <- 1
+for (i in 2:nrow(ranges)) {
+  if (ranges$range_start[[i]] <= ranges$range_end[[i-1]]) {
+    ranges$overlap_id[[i-1]] <<- id_tally
+    ranges$overlap_id[[i]] <<- id_tally
+  } else {
+    id_tally <- id_tally + 1
+  }
+}
+}
+
+add_overlap_ids(ranges)
+
+ranges_no_overlap <- ranges %>%
+  filter(is.na(overlap_id))
+
+ranges_overlap <- ranges %>%
+  filter(!is.na(overlap_id)) %>%
+  group_by(overlap_id) %>%
+  summarize(range_start = min(range_start),
+            range_end = max(range_end))
+
+ranges_without_overlap <-
+  ranges_no_overlap %>%
+  bind_rows(ranges_overlap)
+
+for (i in 1:nrow(ranges_without_overlap)) {
+  ranges_without_overlap$n_in_range[[i]] <- length(ranges_without_overlap$range_start[[i]]:ranges_without_overlap$range_end[[i]])
+}
+
+sum(ranges_without_overlap$n_in_range) 
+
+#436164823559766 is too high
+#423255925124235 is also too high
+#353603024494763 is still too high!
+#353507173555373 is the right answer!
 ```
