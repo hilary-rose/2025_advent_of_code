@@ -1,17 +1,35 @@
-range_fun <- function(ids, ranges) {
-  num_in_range <- 0
-  for (i in 1:length(ids)) {
-    curr_id <- ids[[i]] 
-    in_a_range <- 0 
-    for (j in 1:nrow(ranges)) {
-      if (curr_id >= ranges$range_start[j] & curr_id <= ranges$range_end[j]) {
-        in_a_range <- in_a_range + 1
-        break
-      }
+do_homework <- function(homework) {
+  
+  answers <- c()
+  
+  for (h in 1:length(operators)) {
+    
+    operator <- operators[[h]]
+    pos_from <- operator_positions[[h]]
+    pos_to <- operator_positions[[h+1]]-1
+    
+    question_col <- tibble(question = str_sub(homework, pos_from, pos_to)) %>%
+      filter(!str_detect(question, "\\*|\\+")) %>%
+      mutate(question = str_remove(question, "\\s$"))
+    n_digits <- max(str_length(question_col$question))
+    
+    numbers <- c()
+    
+    for (i in 1:n_digits) {
+      
+      digits <- question_col %>%
+        mutate(number = as.numeric(str_sub(question, i, i))) %>%
+        pull(number)
+      
+      number <- as.numeric(glue::glue_collapse(digits[!is.na(digits)]))
+      numbers <- c(numbers, number)  
     }
-    if (in_a_range > 0) {
-      num_in_range <- num_in_range + 1
+    
+    if (operator == "+") {
+      answers <- c(answers, (sum(numbers, na.rm = T)))
+    } else if (operator == "*") {
+      answers <- c(answers, (prod(numbers, na.rm = T)))
     }
   }
-  return(num_in_range)
+  return(sum(answers))
 }

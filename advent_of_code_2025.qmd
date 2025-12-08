@@ -72,75 +72,65 @@ for (i in 1:nrow(rotations)) {
 
 ```{r}
 
-dial <- c(0:99)
-dial_length <- length(dial)
-starting_index <- which(dial == 50)
-number_zeroes <- 0
-
-#Need to use modulos for this
-for (i in 1:nrow(rotations)) {
-  if (i == 1) {
-    current_value <- dial[[starting_index]]
-  }
-  add_subtract <- rotations$direction[[i]]
-  change_value <- rotations$number[[i]]
-  times_past_zero <- 0
+how_many_zeroes <- function(starting_value, rotations_df) {
   
-  if (add_subtract == "R") {
-    #-----------------Dial Right on Zero
-    #if the dial lands exactly on zero, add it to our tally and reset current_value
-    if (current_value + change_value == 100) {
-           current_value <- 0
-      number_zeroes <- number_zeroes + 1
-    #-----------------Dial goes past zero
-    #if the dial will go past zero, how many times will it do so?
-    } else if (current_value + change_value > 100) {
+  #Set values
+  current_value <- starting_value
+  zeroes_tally <- 0
+  rotations_df <- rotations_df %>%
+    mutate(number = case_when(direction == "L" ~ number * -1, 
+                              TRUE ~ number))
+  #Need to use modulos for this
+  for (i in 1:nrow(rotations_df)) {
+    change_value <- rotations_df$number[[i]]
+    times_past_zero <- 0
+    
+    #-----------------Will the dial land right ON zero? If so, add to tally and reset position
+    if ((current_value + change_value) %% 100 == 0) {
+      current_value <- 0
+      zeroes_tally <- zeroes_tally + 1
+    }
+    #-----------------How many times will the dial go PAST zero 
+    if (abs(current_value) + abs(change_value) > 100) {
       #How many times will we go past zero before changing the index?
-      times_past_zero <- floor(change_value/100)
+      times_past_zero <- floor(abs(change_value)/100)
       #Then get the amount to shift the index by
-      shift_by <- change_value %% 100
-      #if our shift_by value will bring us past zero, figure out the new index by addint 100
-      if (current_value + shift_by > 99) {
-        shift_past_zero <- abs(length(dial) - current_value - shift_by)
-        times_past_zero <- times_past_zero + 1
-        current_value <- shift_past_zero
-      } else {
-        current_value <- current_value + shift_by
+      shift_by <- abs(change_value) %% 100
+      #if our shift_by value will bring us past zero, figure out the new index by adding 100
+      #if we are going to the right
+      if (change_value > 0) {
+        #check if we will go past zero
+        if (current_value + shift_by > 99) {
+          shift_past_zero <- abs(length(dial) - current_value - shift_by)
+          times_past_zero <- times_past_zero + 1
+          current_value <- shift_past_zero
+        } else {
+          #if not, then just add the shift by value
+          current_value <- current_value + shift_by
+        }
+        #if we are going to the left
+      } else if (change_value <= 0) {
+        #check if we will go past zero
+        if (current_value - shift_by < 0) {
+          shift_past_zero <- abs(current_value - shift_by)
+          times_past_zero <- times_past_zero + 1
+          current_value <- 101 - shift_past_zero  
+        } else {
+          #if not, then just add the shift by value
+          current_value <- current_value - shift_by
+        }
       }
     } else {
-        current_value <- current_value + change_value
-      }
-  } 
-  
-  if (add_subtract == "L") {
-    #-----------------Dial Left on Zero
-    #if the dial lands exactly on zero, add it to our tally and reset current_value
-    if (current_value - change_value == 0) {
-           current_value <- 0
-      number_zeroes <- number_zeroes + 1
-    #-----------------Dial goes past zero
-    #if the dial will go past zero, how many times will it do so?
-    } else if (current_value - change_value < 0) {
-      #How many times will we go past zero before changing the index?
-      times_past_zero <- floor(change_value/100)
-      #Then get the amount to shift the index by
-      shift_by <- change_value %% 100
-      #if our shift_by value will bring us past zero, figure out the new index by addint 100
-      if (current_value - shift_by < 0) {
-        shift_past_zero <- abs(current_value - shift_by)
-        times_past_zero <- times_past_zero + 1
-        current_value <- 100 - shift_past_zero
-      } else {
-        current_value <- current_value - shift_by
-      }
-    } else {
-        current_value <- current_value - change_value
-      }
+      current_value <- current_value + change_value
+    }
+    zeroes_tally <- zeroes_tally + times_past_zero
   }
-  number_zeroes <- number_zeroes + times_past_zero
+  return(zeroes_tally)
 }
 
+how_many_zeroes(50, rotations)
 
+  
 #1737 is too low. 6843 is not correct. Neither is 6407.
 
 
@@ -493,4 +483,167 @@ sum(ranges_without_overlap$n_in_range)
 #423255925124235 is also too high
 #353603024494763 is still too high!
 #353507173555373 is the right answer!
+```
+
+## Day 6 - Math Homework
+
+### Part 1
+
+```{r}
+
+homework <- read_tsv(here("input/day6.txt"), col_names = "q") %>%
+  mutate(q = str_squish(q)) %>% 
+  separate_wider_delim(q, delim = " ", names_sep = "")
+
+questions <- homework %>%
+  filter(row_number() < nrow(homework)) %>%
+  mutate(across(everything(), as.numeric))
+
+operators <- homework %>%
+  filter(row_number() == nrow(homework)) %>%
+  pivot_longer(everything(), names_to = "question", values_to = "operator") %>%
+  pull(operator)
+
+
+do_homework <- function(questions, operators) {
+  answers <- c()
+  for (i in 1:ncol(questions)) {
+    question <- pull(questions[, i])
+    operator <- operators[[i]]
+    
+    if (operator == "+") {
+      answers <- c(answers, (sum(question)))
+    } else if (operator == "*") {
+      answers <- c(answers, (prod(question)))
+    }
+  }
+  return(sum(answers))
+}
+
+do_homework(questions, operators)
+
+```
+
+### Part 2
+
+```{r}
+
+
+homework <- read_lines(here("input/day6.txt"))
+operators_raw <- homework[[length(homework)]]
+operators <- str_extract_all(homework[[length(homework)]], "\\*|\\+")[[1]]
+operator_positions <- c(str_locate_all(operators_raw, "[\\*|\\+]")[[1]][,1], max(str_length(homework))+1)
+
+
+do_homework <- function(homework) {
+  
+  answers <- c()
+  
+  for (h in 1:length(operators)) {
+    
+    operator <- operators[[h]]
+    pos_from <- operator_positions[[h]]
+    pos_to <- operator_positions[[h+1]]-1
+    
+    question_col <- tibble(question = str_sub(homework, pos_from, pos_to)) %>%
+      filter(!str_detect(question, "\\*|\\+")) %>%
+      mutate(question = str_remove(question, "\\s$"))
+    n_digits <- max(str_length(question_col$question))
+    
+    numbers <- c()
+    
+    for (i in 1:n_digits) {
+      
+      digits <- question_col %>%
+        mutate(number = as.numeric(str_sub(question, i, i))) %>%
+        pull(number)
+      
+      number <- as.numeric(glue::glue_collapse(digits[!is.na(digits)]))
+      numbers <- c(numbers, number)  
+    }
+    
+    if (operator == "+") {
+      answers <- c(answers, (sum(numbers, na.rm = T)))
+    } else if (operator == "*") {
+      answers <- c(answers, (prod(numbers, na.rm = T)))
+    }
+  }
+  return(sum(answers))
+}
+   
+ 
+
+do_homework(homework)
+```
+
+## Day 7 -
+
+### Part 1
+
+```{r}
+```
+
+### Part 2
+
+```{r}
+```
+
+## Day 8 -
+
+### Part 1
+
+```{r}
+```
+
+### Part 2
+
+```{r}
+```
+
+## Day 9 -
+
+### Part 1
+
+```{r}
+```
+
+### Part 2
+
+```{r}
+```
+
+## Day 10 -
+
+### Part 1
+
+```{r}
+```
+
+### Part 2
+
+```{r}
+```
+
+## Day 11 -
+
+### Part 1
+
+```{r}
+```
+
+### Part 2
+
+```{r}
+```
+
+## Day 12 -
+
+### Part 1
+
+```{r}
+```
+
+### Part 2
+
+```{r}
 ```
